@@ -28,7 +28,6 @@ button:disabled {
 #measures {
   margin-top: 20px;
 }
-
 .measure {
   margin: 10px 0;
   padding: 10px;
@@ -40,3 +39,14 @@ button:disabled {
   border-color: orange;
   font-weight: bold;
 }
+
+.beat {
+  padding: 5px;
+}
+
+.active-beat {
+  background-color: lightblue;
+  border: 1px solid blue;
+  font-weight: bold;
+}
+

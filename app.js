@@ -6,9 +6,10 @@ class Metronome {
     this.nextNoteTime = 0;
     this.intervalId = null;
     this.scheduleAheadTime = 0.1; // Seconds
-    this.lookahead = 25.0; // Milliseconds
+    this.lookahead = 0.0; // Milliseconds
     this.sequence = [];
     this.currentMeasure = 0;
+    this.currentBeat = 0; // Track the current beat
   }
 
   addMeasure(tempo, timeSignature, tones) {
@@ -59,6 +60,7 @@ class Metronome {
     this.isPlaying = true;
     this.currentMeasure = 0;
     this.currentNote = 0;
+    this.currentBeat = 0;
     this.nextNoteTime = this.audioContext.currentTime;
     this.renderMeasures(); // Highlight the active measure
     this.intervalId = setInterval(() => this.scheduler(), this.lookahead);
@@ -67,7 +69,7 @@ class Metronome {
   stop() {
     this.isPlaying = false;
     if (this.intervalId) clearInterval(this.intervalId);
-    this.renderMeasures(); // Remove active measure highlight when stopped
+    this.renderMeasures(); // Remove active measure and beat highlight when stopped
   }
 
   nextNote() {
@@ -81,12 +83,13 @@ class Metronome {
       this.currentNote = 0;
       this.currentMeasure = (this.currentMeasure + 1) % this.sequence.length;
     }
+    this.currentBeat = this.currentNote; // Track the current beat
   }
 
   scheduler() {
     while (this.nextNoteTime < this.audioContext.currentTime + this.scheduleAheadTime) {
       this.playNote();
-      this.nextNote();
+      this.nextNote(); // Schedule the next note
     }
   }
 
@@ -100,7 +103,8 @@ class Metronome {
     osc.start(this.nextNoteTime);
     osc.stop(this.nextNoteTime + 0.1);
 
-    this.renderMeasures(); // Re-render the measures to update the active measure
+    // Update the visual highlight when the note is played
+    this.renderMeasures();
   }
 
   renderMeasures() {
@@ -110,10 +114,22 @@ class Metronome {
       const measureDiv = document.createElement('div');
       measureDiv.className = 'measure';
       measureDiv.textContent = `Measure ${index + 1} - Tempo: ${measure.tempo}, Time Signature: ${measure.timeSignature[0]}/${measure.timeSignature[1]}, Tones: ${measure.tones.join(', ')}`;
-      
-      // Highlight the active measure
+
       if (this.isPlaying && index === this.currentMeasure) {
         measureDiv.classList.add('active');
+        
+        // Add highlighting for beats
+        measure.tones.forEach((tone, beatIndex) => {
+          const beatDiv = document.createElement('div');
+          beatDiv.className = 'beat';
+          beatDiv.textContent = `Beat ${beatIndex + 1}: ${tone}`;
+          if (beatIndex === this.currentBeat) {
+            beatDiv.classList.add('active-beat');
+          }
+          measureDiv.appendChild(beatDiv);
+        });
+      } else {
+        measureDiv.classList.remove('active');
       }
 
       const editButton = document.createElement('button');
@@ -141,8 +157,12 @@ class Metronome {
     document.getElementById('measure-tempo').value = measure.tempo;
     document.getElementById('measure-time-signature-numerator').value = measure.timeSignature[0];
     document.getElementById('measure-time-signature-denominator').value = measure.timeSignature[1];
-    document.getElementById('measure-tones').value = measure.tones.join(',');
     this.updateToneFields(measure.timeSignature[0]);
+    // Set the existing tones in the form
+    const toneInputs = document.querySelectorAll('.tone-input');
+    toneInputs.forEach((input, idx) => {
+      input.value = measure.tones[idx];
+    });
   }
 
   saveMeasure() {
