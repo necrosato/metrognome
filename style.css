@@ -28,10 +28,15 @@ button:disabled {
 #measures {
   margin-top: 20px;
 }
+
 .measure {
-  border: 1px solid #ccc;
-  padding: 10px;
   margin: 10px 0;
-  background-color: white;
+  padding: 10px;
+  border: 1px solid black;
 }
 
+.measure.active {
+  background-color: yellow;
+  border-color: orange;
+  font-weight: bold;
+}

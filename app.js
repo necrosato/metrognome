@@ -60,12 +60,14 @@ class Metronome {
     this.currentMeasure = 0;
     this.currentNote = 0;
     this.nextNoteTime = this.audioContext.currentTime;
+    this.renderMeasures(); // Highlight the active measure
     this.intervalId = setInterval(() => this.scheduler(), this.lookahead);
   }
 
   stop() {
     this.isPlaying = false;
     if (this.intervalId) clearInterval(this.intervalId);
+    this.renderMeasures(); // Remove active measure highlight when stopped
   }
 
   nextNote() {
@@ -97,6 +99,8 @@ class Metronome {
     osc.connect(this.audioContext.destination);
     osc.start(this.nextNoteTime);
     osc.stop(this.nextNoteTime + 0.1);
+
+    this.renderMeasures(); // Re-render the measures to update the active measure
   }
 
   renderMeasures() {
@@ -107,6 +111,11 @@ class Metronome {
       measureDiv.className = 'measure';
       measureDiv.textContent = `Measure ${index + 1} - Tempo: ${measure.tempo}, Time Signature: ${measure.timeSignature[0]}/${measure.timeSignature[1]}, Tones: ${measure.tones.join(', ')}`;
       
+      // Highlight the active measure
+      if (this.isPlaying && index === this.currentMeasure) {
+        measureDiv.classList.add('active');
+      }
+
       const editButton = document.createElement('button');
       editButton.textContent = 'Edit';
       editButton.onclick = () => this.editMeasurePrompt(index);
@@ -126,18 +135,53 @@ class Metronome {
 
   editMeasurePrompt(index) {
     const measure = this.sequence[index];
-    const tempo = parseInt(prompt('Enter new tempo:', measure.tempo), 10);
-    const beatsPerMeasure = parseInt(prompt('Enter new numerator of time signature:', measure.timeSignature[0]), 10);
-    const noteValue = parseInt(prompt('Enter new denominator of time signature:', measure.timeSignature[1]), 10);
 
-    const tones = [];
-    for (let i = 0; i < beatsPerMeasure; i++) {
-      const tone = parseFloat(prompt(`Enter frequency for beat ${i + 1}:`, measure.tones[i]));
-      tones.push(tone);
+    document.getElementById('measure-form').style.display = 'block';
+    document.getElementById('measure-index').value = index;
+    document.getElementById('measure-tempo').value = measure.tempo;
+    document.getElementById('measure-time-signature-numerator').value = measure.timeSignature[0];
+    document.getElementById('measure-time-signature-denominator').value = measure.timeSignature[1];
+    document.getElementById('measure-tones').value = measure.tones.join(',');
+    this.updateToneFields(measure.timeSignature[0]);
+  }
+
+  saveMeasure() {
+    const index = parseInt(document.getElementById('measure-index').value);
+    const tempo = parseInt(document.getElementById('measure-tempo').value, 10);
+    const beatsPerMeasure = parseInt(document.getElementById('measure-time-signature-numerator').value, 10);
+    const noteValue = parseInt(document.getElementById('measure-time-signature-denominator').value, 10);
+    const tones = Array.from(document.querySelectorAll('.tone-input')).map(input => parseFloat(input.value));
+
+    if (index === -1) {
+      this.addMeasure(tempo, [beatsPerMeasure, noteValue], tones);
+    } else {
+      this.editMeasure(index, tempo, [beatsPerMeasure, noteValue], tones);
     }
-
-    this.editMeasure(index, tempo, [beatsPerMeasure, noteValue], tones);
+    
     this.renderMeasures();
+    this.clearForm();
+  }
+
+  clearForm() {
+    document.getElementById('measure-index').value = -1;
+    document.getElementById('measure-tempo').value = 120; // Default tempo
+    document.getElementById('measure-time-signature-numerator').value = 4; // Default time signature numerator
+    document.getElementById('measure-time-signature-denominator').value = 4; // Default time signature denominator
+    this.updateToneFields(4); // Default to 4 beats with default tones
+    document.getElementById('measure-form').style.display = 'none';
+  }
+
+  updateToneFields(beatsPerMeasure) {
+    const tonesContainer = document.getElementById('tones-container');
+    tonesContainer.innerHTML = '';
+
+    for (let i = 0; i < beatsPerMeasure; i++) {
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.className = 'tone-input';
+      input.value = i === 0 ? 880 : 440; // First beat is an octave higher
+      tonesContainer.appendChild(input);
+    }
   }
 }
 
@@ -152,18 +196,8 @@ document.getElementById('stop').addEventListener('click', () => {
 });
 
 document.getElementById('add-measure').addEventListener('click', () => {
-  const tempo = parseInt(prompt('Enter tempo for this measure:', '120'), 10);
-  const beatsPerMeasure = parseInt(prompt('Enter the numerator of the time signature:', '4'), 10);
-  const noteValue = parseInt(prompt('Enter the denominator of the time signature:', '4'), 10);
-
-  const tones = [];
-  for (let i = 0; i < beatsPerMeasure; i++) {
-    const tone = parseFloat(prompt(`Enter frequency for beat ${i + 1}:`, '440'));
-    tones.push(tone);
-  }
-
-  metronome.addMeasure(tempo, [beatsPerMeasure, noteValue], tones);
-  metronome.renderMeasures();
+  metronome.clearForm();
+  document.getElementById('measure-form').style.display = 'block';
 });
 
 document.getElementById('save-sequence').addEventListener('click', () => {
@@ -172,5 +206,18 @@ document.getElementById('save-sequence').addEventListener('click', () => {
 
 document.getElementById('load-sequence').addEventListener('click', () => {
   metronome.loadSequence();
+});
+
+document.getElementById('save-measure').addEventListener('click', () => {
+  metronome.saveMeasure();
+});
+
+document.getElementById('cancel-measure').addEventListener('click', () => {
+  metronome.clearForm();
+});
+
+document.getElementById('measure-time-signature-numerator').addEventListener('input', (e) => {
+  const beatsPerMeasure = parseInt(e.target.value, 10);
+  metronome.updateToneFields(beatsPerMeasure);
 });
 

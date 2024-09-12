@@ -14,8 +14,28 @@
     <button id="add-measure">Add Measure</button>
     <button id="save-sequence">Save Sequence</button>
     <button id="load-sequence">Load Sequence</button>
-    <div id="measures"></div>
   </div>
+
+  <div id="measure-form" style="display: none;">
+    <input type="hidden" id="measure-index" value="-1">
+    
+    <label for="measure-tempo">Tempo:</label>
+    <input type="number" id="measure-tempo" value="120"><br>
+    
+    <label for="measure-time-signature-numerator">Time Signature Numerator:</label>
+    <input type="number" id="measure-time-signature-numerator" value="4"><br>
+    
+    <label for="measure-time-signature-denominator">Time Signature Denominator:</label>
+    <input type="number" id="measure-time-signature-denominator" value="4"><br>
+
+    <div id="tones-container"></div>
+
+    <button id="save-measure">Save</button>
+    <button id="cancel-measure">Cancel</button>
+  </div>
+
+  <div id="measures"></div>
+
   <script src="app.js"></script>
 </body>
 </html>
