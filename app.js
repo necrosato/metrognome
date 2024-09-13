@@ -37,19 +37,21 @@ class Metronome {
   }
 
   saveSequence() {
-    localStorage.setItem('metronomeSequence', JSON.stringify(this.sequence));
-    alert('Sequence saved!');
+    const filename = document.getElementById('filename').value || 'metronome-sequence.json';
+    const blob = new Blob([JSON.stringify(this.sequence, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert(`Sequence saved as ${filename}`);
   }
 
   loadSequence() {
-    const savedSequence = JSON.parse(localStorage.getItem('metronomeSequence'));
-    if (savedSequence) {
-      this.sequence = savedSequence;
-      this.renderMeasures();
-      alert('Sequence loaded!');
-    } else {
-      alert('No sequence found to load.');
-    }
+    document.getElementById('file-input').click();
   }
 
   play() {
@@ -234,6 +236,29 @@ document.getElementById('save-measure').addEventListener('click', () => {
 
 document.getElementById('cancel-measure').addEventListener('click', () => {
   metronome.clearForm();
+});
+
+document.getElementById('file-input').addEventListener('change', (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const loadedSequence = JSON.parse(e.target.result);
+        if (Array.isArray(loadedSequence)) {
+          metronome.sequence = loadedSequence;
+          metronome.renderMeasures();
+          alert('Sequence loaded from JSON file!');
+        } else {
+          alert('Invalid file format.');
+        }
+      } catch (error) {
+        alert('Failed to load sequence. Please ensure the file is in valid JSON format.');
+      }
+    };
+    reader.readAsText(file);
+  }
+  event.target.value=null;
 });
 
 document.getElementById('measure-time-signature-numerator').addEventListener('input', (e) => {
